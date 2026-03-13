@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Swift Lounge — Wednesday Order</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Bebas+Neue&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f0f13;
+    --surface: #1a1a22;
+    --surface2: #22222e;
+    --border: #2e2e3e;
+    --accent: #e94560;
+    --accent2: #f5a623;
+    --text: #f0f0f0;
+    --muted: #888899;
+    --green: #2ecc71;
+    --input-bg: #13131a;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    padding-bottom: 120px;
+  }
+
+  /* HEADER */
+  .header {
+    background: var(--surface);
+    border-bottom: 2px solid var(--accent);
+    padding: 20px 20px 16px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .header-top {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 6px;
+  }
+  .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    color: var(--accent);
+    letter-spacing: 2px;
+  }
+  .header-sub {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .date-line {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--accent2);
+  }
+
+  /* PROGRESS BAR */
+  .progress-wrap {
+    margin-top: 10px;
+    background: var(--border);
+    height: 4px;
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .progress-bar {
+    height: 100%;
+    background: var(--accent);
+    width: 0%;
+    transition: width 0.3s ease;
+  }
+  .progress-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  /* SECTIONS */
+  .section {
+    margin: 16px 16px 0;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .section-header {
+    background: var(--surface2);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    user-select: none;
+    border-bottom: 1px solid var(--border);
+  }
+  .section-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    letter-spacing: 2px;
+    color: var(--text);
+  }
+  .section-meta {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .section-toggle {
+    color: var(--muted);
+    font-size: 18px;
+    transition: transform 0.2s;
+  }
+  .section.collapsed .section-toggle { transform: rotate(-90deg); }
+  .section.collapsed .section-body { display: none; }
+
+  /* ITEMS */
+  .section-body { background: var(--surface); }
+
+  .item-row {
+    display: grid;
+    grid-template-columns: 1fr 90px 72px;
+    gap: 8px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    align-items: center;
+    transition: background 0.15s;
+  }
+  .item-row:last-of-type { border-bottom: none; }
+  .item-row.flagged { background: rgba(233,69,96,0.06); }
+  .item-row.ok { background: rgba(46,204,113,0.04); }
+
+  .item-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    line-height: 1.3;
+  }
+  .item-par {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+  .item-par span {
+    color: var(--accent);
+    font-weight: 500;
+  }
+  .item-prod {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    color: #555566;
+    margin-top: 1px;
+  }
+
+  .count-input {
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 16px; /* 16px minimum prevents iOS zoom */
+    text-align: center;
+    padding: 12px 4px;
+    width: 100%;
+    min-height: 48px; /* touch target minimum */
+    transition: border-color 0.2s;
+    -moz-appearance: textfield;
+    -webkit-appearance: none;
+    appearance: none;
+    touch-action: manipulation;
+  }
+  .count-input::-webkit-outer-spin-button,
+  .count-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+  .count-input:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+  .count-input.needs-order { border-color: var(--accent); background: rgba(233,69,96,0.1); }
+  .count-input.ok { border-color: var(--green); }
+
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--border);
+    margin: 0 auto;
+    transition: background 0.2s;
+    flex-shrink: 0;
+  }
+  .status-dot.needs-order { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+  .status-dot.ok { background: var(--green); }
+
+  .item-controls {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+  .unit-select {
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 16px; /* prevents iOS zoom */
+    padding: 4px 2px;
+    width: 100%;
+    text-align: center;
+    -webkit-appearance: none;
+    appearance: none;
+    touch-action: manipulation;
+  }
+  .unit-select:focus { outline: none; border-color: var(--accent); }
+
+  /* ADD ITEM BUTTON */
+  .add-item-row {
+    padding: 10px 14px;
+    border-top: 1px dashed var(--border);
+    background: var(--surface);
+  }
+  .add-item-btn {
+    background: none;
+    border: 1px dashed var(--border);
+    border-radius: 6px;
+    color: var(--muted);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    padding: 8px 14px;
+    width: 100%;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: left;
+  }
+  .add-item-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  .custom-item-form {
+    display: none;
+    gap: 8px;
+    flex-direction: column;
+    margin-top: 8px;
+  }
+  .custom-item-form.visible { display: flex; }
+  .custom-input {
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px; /* prevents iOS zoom */
+    padding: 12px;
+    width: 100%;
+    min-height: 48px;
+    -webkit-appearance: none;
+    appearance: none;
+    touch-action: manipulation;
+  }
+  .custom-input:focus { outline: none; border-color: var(--accent2); }
+  .custom-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .save-custom-btn {
+    background: var(--accent2);
+    border: none;
+    border-radius: 6px;
+    color: #000;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    padding: 10px;
+    cursor: pointer;
+    width: 100%;
+  }
+  .cancel-custom-btn {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--muted);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    padding: 10px;
+    cursor: pointer;
+    width: 100%;
+  }
+  .custom-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+  /* NOTES */
+  .notes-section {
+    margin: 16px 16px 0;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .notes-header {
+    background: var(--surface2);
+    padding: 12px 16px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    letter-spacing: 2px;
+    border-bottom: 1px solid var(--border);
+  }
+  textarea.notes-input {
+    background: var(--surface);
+    border: none;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px; /* prevents iOS zoom */
+    padding: 14px;
+    width: 100%;
+    min-height: 90px;
+    resize: vertical;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  textarea.notes-input:focus { outline: none; }
+  textarea.notes-input::placeholder { color: var(--muted); }
+
+  /* SUMMARY BANNER */
+  .summary-banner {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: var(--surface);
+    border-top: 2px solid var(--accent);
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    z-index: 200;
+  }
+  .summary-counts {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .summary-counts strong {
+    color: var(--accent);
+    font-size: 16px;
+  }
+  .compile-btn {
+    background: var(--accent);
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    letter-spacing: 2px;
+    padding: 12px 24px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .compile-btn:hover { background: #c73652; transform: translateY(-1px); }
+  .compile-btn:disabled { background: var(--border); color: var(--muted); transform: none; cursor: default; }
+
+  /* COMPILED OUTPUT */
+  .output-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    z-index: 300;
+    overflow-y: auto;
+    padding: 20px;
+  }
+  .output-modal.visible { display: block; }
+  .output-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    max-width: 600px;
+    margin: 0 auto;
+    overflow: hidden;
+  }
+  .output-card-header {
+    background: var(--accent);
+    padding: 16px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .output-card-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 2px;
+    color: white;
+  }
+  .close-btn {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 22px;
+    cursor: pointer;
+    padding: 0 4px;
+  }
+  .output-body {
+    padding: 16px 20px;
+  }
+  .output-section-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 14px;
+    letter-spacing: 2px;
+    color: var(--accent2);
+    margin: 16px 0 8px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 4px;
+  }
+  .output-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    font-size: 13px;
+  }
+  .output-item-name { color: var(--text); }
+  .output-item-qty {
+    font-family: 'DM Mono', monospace;
+    color: var(--accent);
+    font-weight: 500;
+  }
+  .output-item-prod {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: #555566;
+    margin-top: 1px;
+  }
+  .output-notes {
+    background: var(--surface2);
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin-top: 12px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .copy-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 12px;
+    width: 100%;
+    cursor: pointer;
+    margin-top: 16px;
+    transition: all 0.2s;
+  }
+  .copy-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .copy-btn.copied { border-color: var(--green); color: var(--green); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <div class="logo">Swift Lounge</div>
+    <div class="header-sub">Wednesday Order</div>
+  </div>
+  <div class="date-line" id="dateLine"></div>
+  <div class="progress-wrap"><div class="progress-bar" id="progressBar"></div></div>
+  <div class="progress-label" id="progressLabel">0 of 0 items counted</div>
+</div>
+
+<div id="formSections"></div>
+
+<div class="notes-section">
+  <div class="notes-header">Notes for This Order</div>
+  <textarea class="notes-input" id="globalNotes" placeholder="Low on anything mid-week? Walk-in issues? Anything weird going on? Write it here."></textarea>
+</div>
+
+<div class="summary-banner">
+  <div class="summary-counts">
+    <strong id="orderCount">0</strong> items to order
+  </div>
+  <button class="compile-btn" id="compileBtn" onclick="compileOrder()">Compile Order</button>
+</div>
+
+<div class="output-modal" id="outputModal">
+  <div class="output-card">
+    <div class="output-card-header">
+      <div class="output-card-title">Order Ready to Submit</div>
+      <button class="close-btn" onclick="closeModal()">✕</button>
+    </div>
+    <div class="output-body" id="outputBody"></div>
+  </div>
+</div>
+
+<script>
+const today = new Date();
+const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+document.getElementById('dateLine').textContent =
+  `${days[today.getDay()]} ${months[today.getMonth()]} ${today.getDate()}, ${today.getFullYear()} — Submit by 8:00 PM`;
+
+// ── INVENTORY DATA ─────────────────────────────────────────────────────────
+const sections = [
+  { name: "Proteins", items: [
+    { name: "Chicken Wings 1&2 Joint Raw", prod: "6096572", pack: "4/10 LB CS", par: "6 LB", unit: "LB", vendor: "USF" },
+    { name: "Chicken Wing Breaded Spicy Cooked Frozen", prod: "541873", pack: "3/5 LB CS", par: "6 LB", unit: "LB", vendor: "PFG" },
+    { name: "Ground Chuck 80/20 Angus", prod: "1282695", pack: "2/5 LB CS", par: "8 LB", unit: "LB", vendor: "USF" },
+    { name: "Sirloin Steak Top 8oz", prod: "899034", pack: "16/8 OZ CS", par: "4 CT", unit: "CT", vendor: "USF" },
+    { name: "Pulled Pork Shoulder Cooked", prod: "7975470", pack: "4/3.5 LB CS", par: "3 LB", unit: "LB", vendor: "USF" },
+    { name: "Beyond Meat Ground Vegan", prod: "4949126", pack: "6/2 LB CS", par: "2 LB", unit: "LB", vendor: "USF" },
+    { name: "Bacon Pork Applewood 10-14ct", prod: "2335941", pack: "15 LB CS", par: "3 LB", unit: "LB", vendor: "USF" },
+    { name: "Pangasius Fillet 7-9oz (Catfish)", prod: "9092012", pack: "15 LB CS", par: "6 LB", unit: "LB", vendor: "USF" },
+    { name: "Crab Rangoon 1oz Frozen", prod: "8161651", pack: "4/30 CT CS", par: "20 CT", unit: "CT", vendor: "USF" },
+    { name: "Hot Dog All-Beef 4:1", prod: "1330083", pack: "2/5 LB CS", par: "4 CT", unit: "CT", vendor: "USF" },
+  ]},
+  { name: "Frozen", items: [
+    { name: "Extra Crispy Fries 3/8 SC", prod: "2883130", pack: "6/5 LB CS", par: "16 LB", unit: "LB", vendor: "USF" },
+    { name: "Queso Boil-in-Bag", prod: "3145237", pack: "4/5 LB CS", par: "4 LB", unit: "LB", vendor: "USF" },
+    { name: "Burger Bun White 4.5 Sliced Frozen", prod: "6143150", pack: "6/8 CT CS", par: "10 CT", unit: "CT", vendor: "USF" },
+    { name: "Elote Corn Nugget Frozen", prod: "5942572", pack: "3/3 LB CS", par: "3 LB", unit: "LB", vendor: "USF" },
+    { name: "Frozen Peach Sliced IQF", prod: "—", pack: "10 LB CS", par: "2 LB", unit: "LB", vendor: "USF" },
+    { name: "Dragon Fruit Pink Diced", prod: "—", pack: "10 LB CS", par: "1 LB", unit: "LB", vendor: "USF" },
+  ]},
+  { name: "Dry Goods — Kitchen", items: [
+    { name: "Frying Shortening Beef Tallow", prod: "2880383", pack: "50 LB CS", par: "1 CS", unit: "CS", vendor: "USF" },
+    { name: "Flour All-Purpose 25 LB", prod: "1044889", pack: "25 LB", par: "5 LB", unit: "LB", vendor: "USF" },
+    { name: "Cornmeal Yellow Medium", prod: "4525893", pack: "25 LB", par: "3 LB", unit: "LB", vendor: "USF" },
+    { name: "Chicken Breader Mix", prod: "3977581", pack: "25 LB", par: "5 LB", unit: "LB", vendor: "USF" },
+    { name: "Salt Kosher Coarse", prod: "4999470", pack: "12/3 LB CS", par: "3 LB", unit: "LB", vendor: "USF" },
+    { name: "Sugar White Extra Fine", prod: "4395612", pack: "25 LB", par: "3 LB", unit: "LB", vendor: "USF" },
+    { name: "Sugar Brown Light", prod: "5010749", pack: "25 LB", par: "2 LB", unit: "LB", vendor: "USF" },
+    { name: "Tortilla Chip Raw 4-Cut Yellow", prod: "6334272", pack: "25 LB CS", par: "4 LB", unit: "LB", vendor: "USF" },
+    { name: "Pickle Dill Crinkle Chip 5-Gal", prod: "3171094", pack: "5 GA", par: "1 GA", unit: "GA", vendor: "USF" },
+    { name: "Ketchup Fancy #10 Can", prod: "5686472", pack: "6/#10 CN", par: "1 CN", unit: "CN", vendor: "USF" },
+    { name: "Mayo Extra-Heavy 1 GA", prod: "6328157", pack: "4/1 GA CS", par: "0.5 GA", unit: "GA", vendor: "USF" },
+    { name: "Buffalo Hot Sauce Wing Frank's", prod: "5175377", pack: "4/1 GA CS", par: "0.5 GA", unit: "GA", vendor: "USF" },
+    { name: "BBQ Sauce Sweet Baby Ray's", prod: "9844416", pack: "4/1 GA CS", par: "0.5 GA", unit: "GA", vendor: "PFG" },
+    { name: "Mango Habanero Sauce Sweet Baby Ray's", prod: "453187", pack: "1/64 OZ CS", par: "1 CS", unit: "CS", vendor: "PFG" },
+    { name: "Jalapeno Sliced Nacho Jar", prod: "1811215", pack: "4/1 GA CS", par: "0.5 GA", unit: "GA", vendor: "USF" },
+    { name: "Chipotle Whole in Adobo Sauce Embasa", prod: "3225661", pack: "12/26 OZ CS", par: "2 CN", unit: "CN", vendor: "USF" },
+    { name: "Seasoning Lemon & Pepper Magellan", prod: "628163", pack: "1/28 OZ CS", par: "1 CS", unit: "CS", vendor: "PFG" },
+    { name: "Jello Mix Assorted Red", prod: "5343371", pack: "12/24 OZ CS", par: "20 CT", unit: "CT", vendor: "USF" },
+  ]},
+  { name: "Dry Goods — Bar", items: [
+    { name: "Pineapple Juice 100% 46oz Cans", prod: "2006625", pack: "12/46 OZ CS", par: "2 CN", unit: "CN", vendor: "USF" },
+    { name: "OJ 100% 64oz Bottle", prod: "285189", pack: "8/64 OZ CS", par: "1 BT", unit: "BT", vendor: "USF" },
+    { name: "Grapefruit Juice Ruby Red 60oz", prod: "3110418", pack: "8/60 OZ CS", par: "1 BT", unit: "BT", vendor: "USF" },
+    { name: "Sweet Chili Sauce", prod: "9060569", pack: "12/26 OZ CS", par: "1 BT", unit: "BT", vendor: "USF" },
+    { name: "1883 Pandan Syrup (Special Order — 12 day lead)", prod: "1234902", pack: "2/1 LT CS", par: "2 BT", unit: "BT", vendor: "USF" },
+  ]},
+  { name: "Produce", items: [
+    { name: "Limes 28ct Fresh", prod: "8499126", pack: "10 LB CS", par: "3 LB", unit: "LB", vendor: "USF" },
+    { name: "Lemons Fresh", prod: "3551421", pack: "10 LB CS", par: "2 LB", unit: "LB", vendor: "USF" },
+    { name: "Romaine Heart Bag", prod: "6856363", pack: "7/6 EA CS", par: "4 CT", unit: "CT", vendor: "USF" },
+    { name: "Spring Mix Green & Red", prod: "457305", pack: "1/3 LB CS", par: "2 LB", unit: "LB", vendor: "PFG" },
+    { name: "Tomato Roma", prod: "217000", pack: "1/25 LB CS", par: "5 LB", unit: "LB", vendor: "PFG" },
+    { name: "Green Onion Washed & Trimmed", prod: "247091", pack: "1/2 LB CS", par: "2 CS", unit: "CS", vendor: "PFG" },
+    { name: "Cabbage Green Shredded", prod: "565696", pack: "1/5 LB CS", par: "2 LB", unit: "LB", vendor: "PFG" },
+    { name: "Cauliflower Florets", prod: "877279", pack: "2/3 LB CS", par: "3 LB", unit: "LB", vendor: "PFG" },
+    { name: "Cucumber Fresh", prod: "6011803", pack: "5 LB CS", par: "2 LB", unit: "LB", vendor: "USF" },
+    { name: "Mint Fresh Herb 4oz", prod: "2861839", pack: "4 OZ CS", par: "1 CS", unit: "CS", vendor: "USF" },
+    { name: "Basil Fresh Herb 4oz", prod: "1455252", pack: "4 OZ CS", par: "1 CS", unit: "CS", vendor: "USF" },
+    { name: "Onion Red Jumbo", prod: "4326690", pack: "25 LB CS", par: "3 LB", unit: "LB", vendor: "USF" },
+    { name: "Onion Red Peak Fresh", prod: "267792", pack: "1/5 LB CS", par: "2 LB", unit: "LB", vendor: "PFG" },
+    { name: "Onion Yellow Jumbo", prod: "8305992", pack: "50 LB CS", par: "5 LB", unit: "LB", vendor: "USF" },
+    { name: "Brussels Sprout Trimmed Bag", prod: "9620761", pack: "2/5 LB CS", par: "3 LB", unit: "LB", vendor: "USF" },
+    { name: "Collard Greens 24ct", prod: "1860629", pack: "24 EA CS", par: "4 CT", unit: "CT", vendor: "USF" },
+    { name: "Yukon Gold Potato 10 LB", prod: "1088865", pack: "10 LB CS", par: "5 LB", unit: "LB", vendor: "USF" },
+    { name: "Pico de Gallo Fresh", prod: "5613096", pack: "2/1 GA CS", par: "0.5 GA", unit: "GA", vendor: "USF" },
+    { name: "Rosemary Fresh Herb 4oz", prod: "4384624", pack: "4 OZ CS", par: "1 CS", unit: "CS", vendor: "USF" },
+    { name: "Grapefruit Red Fresh", prod: "3255786", pack: "3 EA CS", par: "2 EA", unit: "EA", vendor: "USF" },
+  ]},
+  { name: "Refrigerated", items: [
+    { name: "Butter Unsalted AA Grade", prod: "899807", pack: "36/1 LB CS", par: "3 LB", unit: "LB", vendor: "USF" },
+    { name: "Cheese American Sliced Yellow", prod: "3340510", pack: "4/5 LB CS", par: "2 LB", unit: "LB", vendor: "USF" },
+    { name: "Cheese Blue Crumble", prod: "32920", pack: "3/5 LB CS", par: "1 LB", unit: "LB", vendor: "USF" },
+    { name: "Cheese Parmesan Shredded", prod: "3587490", pack: "4/5 LB CS", par: "1 LB", unit: "LB", vendor: "USF" },
+    { name: "Cheese Cotija Grated", prod: "4181132", pack: "2/5 LB CS", par: "1 LB", unit: "LB", vendor: "USF" },
+    { name: "Sour Cream Heavy Tub", prod: "7635246", pack: "2/5 LB CS", par: "1 LB", unit: "LB", vendor: "USF" },
+    { name: "Pickle Dill Kosher Chip REF", prod: "1053769", pack: "2/1 GA CS", par: "0.5 GA", unit: "GA", vendor: "USF" },
+    { name: "Milk Whole 1 GA", prod: "4429207", pack: "2/1 GA CS", par: "1 GA", unit: "GA", vendor: "USF" },
+    { name: "Buttermilk Low Fat .5 GA", prod: "5791592", pack: "6/.5 GA CS", par: "1 BT", unit: "BT", vendor: "USF" },
+    { name: "Heavy Cream .5 GA", prod: "1606134", pack: "6/.5 GA CS", par: "1 BT", unit: "BT", vendor: "USF" },
+    { name: "Egg White Liquid Pasteurized Cage-Free 2 LB", prod: "5828967", pack: "15/2 LB CS", par: "1 EA", unit: "EA", vendor: "USF" },
+  ]},
+  { name: "Paper Goods & To-Go", items: [
+    { name: "Napkin Dinner White 2-Ply", prod: "7634157", pack: "20/150 EA CS", par: "1 CS", unit: "CS", vendor: "USF" },
+    { name: "Plastic Wrap 18x2000'", prod: "4834081", pack: "1 RL", par: "1 RL", unit: "RL", vendor: "USF" },
+    { name: "Aluminum Foil 18x500' HD", prod: "1079572", pack: "1 RL", par: "1 RL", unit: "RL", vendor: "USF" },
+    { name: "To-Go Box Kraft #1", prod: "1290382", pack: "9/50 EA CS", par: "20 CT", unit: "CT", vendor: "USF" },
+    { name: "To-Go Box Kraft #4 Fold Top", prod: "1032428", pack: "4/50 EA CS", par: "10 CT", unit: "CT", vendor: "USF" },
+    { name: "Paper Shopping Bag w/ Handle", prod: "8658343", pack: "250 EA CS", par: "20 CT", unit: "CT", vendor: "USF" },
+    { name: "Trash Liner 40-45 Gal Black", prod: "7826597", pack: "4/25 EA CS", par: "10 CT", unit: "CT", vendor: "USF" },
+    { name: "Glove Nitrile Large Black", prod: "9650802", pack: "4/250 EA CS", par: "20 CT", unit: "CT", vendor: "USF" },
+  ]},
+  { name: "Cleaning Supplies", items: [
+    { name: "Bleach Disinfectant Liquid 1 GA", prod: "6696848", pack: "6/1 GA CS", par: "1 GA", unit: "GA", vendor: "USF" },
+    { name: "Scrubber Nylon Green Medium", prod: "2949105", pack: "20 EA CS", par: "4 EA", unit: "EA", vendor: "USF" },
+    { name: "Scrubber S/S Medium Duty", prod: "2950335", pack: "6/12 EA CS", par: "4 EA", unit: "EA", vendor: "USF" },
+    { name: "Grill Brick Griddle", prod: "2983859", pack: "12/1 EA CS", par: "1 EA", unit: "EA", vendor: "USF" },
+    { name: "Dish Soap (Cash & Carry)", prod: "—", pack: "—", par: "1 BT", unit: "BT", vendor: "USF" },
+    { name: "Sanitizer Tabs (Cash & Carry)", prod: "—", pack: "—", par: "1 BX", unit: "BX", vendor: "USF" },
+  ]},
+];
+
+// ── RENDER FORM ────────────────────────────────────────────────────────────
+const container = document.getElementById('formSections');
+let totalItems = 0;
+let customItems = [];
+
+sections.forEach((section, si) => {
+  const sEl = document.createElement('div');
+  sEl.className = 'section';
+  sEl.dataset.section = si;
+
+  sEl.innerHTML = `
+    <div class="section-header" onclick="toggleSection(${si})">
+      <div>
+        <div class="section-title">${section.name}</div>
+        <div class="section-meta">${section.items.length} items</div>
+      </div>
+      <div class="section-toggle">▾</div>
+    </div>
+    <div class="section-body" id="body-${si}"></div>
+  `;
+
+  const body = sEl.querySelector(`#body-${si}`);
+
+  section.items.forEach((item, ii) => {
+    totalItems++;
+    const row = document.createElement('div');
+    row.className = 'item-row';
+    row.dataset.si = si;
+    row.dataset.ii = ii;
+    row.innerHTML = `
+      <div>
+        <div class="item-name">${item.name} <span style="font-size:9px;font-family:'DM Mono',monospace;padding:2px 5px;border-radius:3px;margin-left:4px;background:${item.vendor==='PFG'?'rgba(245,166,35,0.15)':'rgba(233,69,96,0.12)'};color:${item.vendor==='PFG'?'#f5a623':'#e94560'}">${item.vendor}</span></div>
+        <div class="item-par">Order point: <span>${item.par}</span> &nbsp;·&nbsp; ${item.pack}</div>
+        <div class="item-prod">#${item.prod}</div>
+      </div>
+      <input type="number" class="count-input" placeholder="Count" min="0" step="0.5"
+        data-si="${si}" data-ii="${ii}" data-par="${item.par}" data-unit="${item.unit}"
+        oninput="handleCount(this)" inputmode="decimal">
+      <div class="item-controls">
+        <div class="status-dot" id="dot-${si}-${ii}"></div>
+        <select class="unit-select" id="unit-${si}-${ii}">
+          ${['LB','CT','CS','GA','BT','CN','EA','RL','BX'].map(u =>
+            `<option value="${u}" ${u===item.unit?'selected':''}>${u}</option>`
+          ).join('')}
+        </select>
+      </div>
+    `;
+    body.appendChild(row);
+  });
+
+  // Add item row
+  const addRow = document.createElement('div');
+  addRow.className = 'add-item-row';
+  addRow.innerHTML = `
+    <button class="add-item-btn" onclick="showAddForm(${si})">+ Add item not on list</button>
+    <div class="custom-item-form" id="custom-form-${si}">
+      <input class="custom-input" id="custom-name-${si}" placeholder="Item name / description" type="text">
+      <div class="custom-row">
+        <input class="custom-input" id="custom-qty-${si}" placeholder="Qty needed" type="text">
+        <input class="custom-input" id="custom-prod-${si}" placeholder="Prod # (optional)" type="text">
+      </div>
+      <div class="custom-btns">
+        <button class="cancel-custom-btn" onclick="hideAddForm(${si})">Cancel</button>
+        <button class="save-custom-btn" onclick="saveCustomItem(${si})">Add to Order</button>
+      </div>
+    </div>
+  `;
+  body.appendChild(addRow);
+  container.appendChild(sEl);
+});
+
+// ── LOGIC ──────────────────────────────────────────────────────────────────
+let counted = 0;
+let toOrder = 0;
+
+function parseVal(str) {
+  const n = parseFloat(str);
+  return isNaN(n) ? null : n;
+}
+
+function parseParVal(par) {
+  return parseFloat(par) || 0;
+}
+
+function handleCount(input) {
+  const si = input.dataset.si;
+  const ii = input.dataset.ii;
+  const dot = document.getElementById(`dot-${si}-${ii}`);
+  const row = input.closest('.item-row');
+  const val = parseVal(input.value);
+  const par = parseParVal(input.dataset.par);
+
+  input.classList.remove('needs-order','ok');
+  dot.classList.remove('needs-order','ok');
+  row.classList.remove('flagged','ok');
+
+  if (val !== null) {
+    if (val <= par) {
+      input.classList.add('needs-order');
+      dot.classList.add('needs-order');
+      row.classList.add('flagged');
+    } else {
+      input.classList.add('ok');
+      dot.classList.add('ok');
+      row.classList.add('ok');
+    }
+  }
+  updateSummary();
+}
+
+function updateSummary() {
+  const inputs = document.querySelectorAll('.count-input');
+  let c = 0, o = 0;
+  inputs.forEach(inp => {
+    if (inp.value !== '') {
+      c++;
+      if (parseVal(inp.value) <= parseParVal(inp.dataset.par)) o++;
+    }
+  });
+  counted = c;
+  toOrder = o + customItems.filter(i => i.active).length;
+  document.getElementById('orderCount').textContent = toOrder;
+  document.getElementById('progressBar').style.width = `${Math.round(c/totalItems*100)}%`;
+  document.getElementById('progressLabel').textContent = `${c} of ${totalItems} items counted`;
+}
+
+function toggleSection(si) {
+  const el = document.querySelector(`.section[data-section="${si}"]`);
+  el.classList.toggle('collapsed');
+}
+
+function showAddForm(si) {
+  document.getElementById(`custom-form-${si}`).classList.add('visible');
+}
+function hideAddForm(si) {
+  document.getElementById(`custom-form-${si}`).classList.remove('visible');
+  document.getElementById(`custom-name-${si}`).value = '';
+  document.getElementById(`custom-qty-${si}`).value = '';
+  document.getElementById(`custom-prod-${si}`).value = '';
+}
+function saveCustomItem(si) {
+  const name = document.getElementById(`custom-name-${si}`).value.trim();
+  const qty = document.getElementById(`custom-qty-${si}`).value.trim();
+  const prod = document.getElementById(`custom-prod-${si}`).value.trim();
+  if (!name || !qty) return;
+  customItems.push({ si, name, qty, prod, active: true, sectionName: sections[si].name });
+  hideAddForm(si);
+
+  // Show confirmation in section
+  const body = document.getElementById(`body-${si}`);
+  const tag = document.createElement('div');
+  tag.className = 'item-row flagged';
+  tag.style.opacity = '0.85';
+  tag.innerHTML = `
+    <div><div class="item-name">✦ ${name}</div><div class="item-par">Custom add · ${prod||'no prod #'}</div></div>
+    <div style="font-family:'DM Mono',monospace;font-size:13px;color:var(--accent2);text-align:center;">${qty}</div>
+    <div></div>
+  `;
+  body.insertBefore(tag, body.lastElementChild);
+  updateSummary();
+}
+
+function compileOrder() {
+  const inputs = document.querySelectorAll('.count-input');
+  const orderBySec = {};
+
+  // Split items by vendor
+  const usfItems = {};
+  const pfgItems = {};
+
+  inputs.forEach(inp => {
+    if (inp.value === '') return;
+    const val = parseVal(inp.value);
+    const par = parseParVal(inp.dataset.par);
+    if (val > par) return;
+    const si = inp.dataset.si;
+    const ii = inp.dataset.ii;
+    const item = sections[si].items[ii];
+    const unit = document.getElementById(`unit-${si}-${ii}`).value;
+    const sName = sections[si].name;
+    const bucket = item.vendor === 'PFG' ? pfgItems : usfItems;
+    if (!bucket[sName]) bucket[sName] = [];
+    bucket[sName].push({ name: item.name, prod: item.prod, pack: item.pack, count: val, unit });
+  });
+
+  customItems.filter(i => i.active).forEach(ci => {
+    if (!usfItems[ci.sectionName]) usfItems[ci.sectionName] = [];
+    usfItems[ci.sectionName].push({ name: `★ ${ci.name}`, prod: ci.prod||'—', pack: '—', count: ci.qty, unit: '' });
+  });
+
+  const notes = document.getElementById('globalNotes').value.trim();
+  const body = document.getElementById('outputBody');
+  const dateLine = document.getElementById('dateLine').textContent;
+  let plain = '';
+
+  body.innerHTML = '';
+  const totalOrders = Object.keys(usfItems).length + Object.keys(pfgItems).length;
+
+  if (totalOrders === 0) {
+    body.innerHTML = '<div style="color:var(--green);text-align:center;padding:20px;font-size:14px;">✓ All items are stocked above par. Nothing to order!</div>';
+  } else {
+    const renderVendor = (vendorName, vendorColor, buckets) => {
+      if (Object.keys(buckets).length === 0) return;
+      const vendorHeader = document.createElement('div');
+      vendorHeader.style.cssText = `background:${vendorColor};color:white;padding:8px 12px;border-radius:6px;font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:2px;margin:16px 0 8px`;
+      vendorHeader.textContent = `── ${vendorName} ──`;
+      body.appendChild(vendorHeader);
+      plain += `\n${'='.repeat(40)}\n${vendorName.toUpperCase()}\n${'='.repeat(40)}\n`;
+
+      Object.entries(buckets).forEach(([sec, items]) => {
+        const secTitle = document.createElement('div');
+        secTitle.className = 'output-section-title';
+        secTitle.textContent = sec;
+        body.appendChild(secTitle);
+        plain += `\n${sec.toUpperCase()}\n`;
+        items.forEach(item => {
+          const row = document.createElement('div');
+          row.className = 'output-item';
+          row.innerHTML = `
+            <div>
+              <div class="output-item-name">${item.name}</div>
+              <div class="output-item-prod">#${item.prod} · ${item.pack}</div>
+            </div>
+            <div class="output-item-qty">${item.count} ${item.unit}</div>
+          `;
+          body.appendChild(row);
+          plain += `  ${item.name} — ${item.count} ${item.unit} (#${item.prod})\n`;
+        });
+      });
+    };
+
+    plain = `SWIFT LOUNGE — ORDER SHEET\n${dateLine}\n`;
+    renderVendor('US Foods', '#e94560', usfItems);
+    renderVendor('Performance Food Group', '#f5a623', pfgItems);
+  }
+
+  if (notes) {
+    const nEl = document.createElement('div');
+    nEl.className = 'output-notes';
+    nEl.innerHTML = `<strong style="color:var(--accent2)">Notes:</strong> ${notes}`;
+    body.appendChild(nEl);
+    plain += `NOTES: ${notes}\n`;
+  }
+
+  const copyBtn = document.createElement('button');
+  copyBtn.className = 'copy-btn';
+  copyBtn.textContent = 'Copy Order to Clipboard';
+  copyBtn.onclick = () => {
+    navigator.clipboard.writeText(plain).then(() => {
+      copyBtn.textContent = '✓ Copied!';
+      copyBtn.classList.add('copied');
+      setTimeout(() => { copyBtn.textContent = 'Copy Order to Clipboard'; copyBtn.classList.remove('copied'); }, 2000);
+    });
+  };
+  body.appendChild(copyBtn);
+
+  document.getElementById('outputModal').classList.add('visible');
+}
+
+function closeModal() {
+  document.getElementById('outputModal').classList.remove('visible');
+}
+</script>
+</body>
+</html>
